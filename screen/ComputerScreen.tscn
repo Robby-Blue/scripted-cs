@@ -1,0 +1,13 @@
+[gd_scene load_steps=4 format=3 uid="uid://cv1bkpo0028jo"]
+
+[ext_resource type="Script" uid="uid://1hmobjed8lq3" path="res://screen/ComputerScreen.cs" id="1_3oh7c"]
+[ext_resource type="Shader" uid="uid://cvoot30yr8php" path="res://screen/ComputerScreen.gdshader" id="1_j5kou"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_cvo84"]
+shader = ExtResource("1_j5kou")
+
+[node name="ComputerScreen" type="TextureRect"]
+material = SubResource("ShaderMaterial_cvo84")
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_3oh7c")
