@@ -35,10 +35,10 @@ public partial class MainMenu : Control
     public override void _PhysicsProcess(double delta)
     {
         deltaSum += (float)delta;
-        while (deltaSum > 0.1f)
+        while (deltaSum > 0.000001f)
         {
             computer.Step();
-            deltaSum -= 0.1f;
+            deltaSum -= 0.000001f;
         }
     }
 }

@@ -21,7 +21,10 @@ public partial class ComputerScreen : TextureRect
         Color color = Color.Color8(brightness_byte, brightness_byte, brightness_byte);
         image.SetPixel(x, y, color);
 
-        UpdateScreen();
+        if (x == 1)
+        {
+            UpdateScreen();
+        }
     }
 
     public void UpdateScreen()
