@@ -3,16 +3,27 @@ using Godot;
 public partial class ComputerScreen : TextureRect
 {
 
-    Image image;
-    int width = 352;
-    int height = 280;
+    private bool wasTextureChanged = false;
+    private Image image;
+    private int width = 351;
+    private int height = 280;
 
     public override void _Ready()
     {
         image = Image.CreateEmpty(width, height, false, Image.Format.Rgb8);
         image.Fill(Color.Color8(0, 0, 0));
 
+        wasTextureChanged = true;
+    }
+
+    public override void _Process(double delta)
+    {
+        if (!wasTextureChanged)
+        {
+            return;
+        }
         UpdateScreen();
+        wasTextureChanged = false;
     }
 
     public void SetPixel(int x, int y, int brightness)
@@ -21,10 +32,7 @@ public partial class ComputerScreen : TextureRect
         Color color = Color.Color8(brightness_byte, brightness_byte, brightness_byte);
         image.SetPixel(x, y, color);
 
-        if (x == 1)
-        {
-            UpdateScreen();
-        }
+        wasTextureChanged = true;
     }
 
     public void UpdateScreen()
