@@ -21,9 +21,13 @@ public enum Opcode
     NOT,
     AND,
     OR,
+    CAST,
     LOOKUP,
+    ARR_APPEND,
     WRITE,
     LEN,
+    NEW_ARR,
+    NEW_DICT,
     SYSC,
     HALT
 }

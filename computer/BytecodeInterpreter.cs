@@ -46,9 +46,13 @@ public partial class BytecodeInterpreter
             [Opcode.NOT] = ExecuteNot,
             [Opcode.AND] = ExecuteAnd,
             [Opcode.OR] = ExecuteOr,
+            [Opcode.CAST] = ExecuteCast,
             [Opcode.LOOKUP] = ExecuteLookup,
+            [Opcode.ARR_APPEND] = ExecuteArrAppend,
             [Opcode.WRITE] = ExecuteWrite,
             [Opcode.LEN] = ExecuteLen,
+            [Opcode.NEW_ARR] = ExecuteNewArr,
+            [Opcode.NEW_DICT] = ExecuteNewDict,
             [Opcode.SYSC] = ExecuteSysc,
             [Opcode.HALT] = ExecuteHalt
         };
@@ -137,8 +141,19 @@ public partial class BytecodeInterpreter
 
     private void ExecuteRet(object[] args)
     {
+        List<object> variablesStack = new();
+        for (int i = 0; i < args.Length; i++)
+        {
+            variablesStack.Add(GetArgValue(args[i]));
+        }
+
         ip = (int)stack.Pop();
         variables.RemoveAt(variables.Count - 1);
+
+        foreach (object var in variablesStack)
+        {
+            stack.Push(var);
+        }
     }
 
     private void ExecutePush(object[] args)
@@ -210,37 +225,62 @@ public partial class BytecodeInterpreter
         bool b = (bool)stack.Pop();
         stack.Push(!b);
     }
+
     private void ExecuteAnd(object[] args)
     {
         (bool a, bool b) = StackPopTwo<bool>();
         stack.Push(a && b);
     }
+
     private void ExecuteOr(object[] args)
     {
         (bool a, bool b) = StackPopTwo<bool>();
         stack.Push(a || b);
     }
 
+    private void ExecuteCast(object[] args)
+    {
+        object val = stack.Pop();
+        Type type = (Type)args[0];
+        stack.Push(Convert.ChangeType(val, type));
+    }
+
     private void ExecuteLookup(object[] args)
     {
-        object o = stack.Pop();
-        if (o is IList list)
+        object lookupKey = GetArgValue(args[0]);
+        object collection = stack.Pop();
+        if (collection is IList list && lookupKey is int index)
         {
-            int index = GetArgValue<int>(args[0]);
             object value = list[index];
             stack.Push(value);
         }
-        if (o is IDictionary dict)
+        if (collection is IDictionary dict)
         {
-            string key = GetArgValue<string>(args[0]);
-            object value = dict[key];
+            object value = dict[lookupKey];
             stack.Push(value);
         }
     }
 
+    private void ExecuteArrAppend(object[] args)
+    {
+        IList array = GetArgValue<IList>(args[0]);
+        object data = GetArgValue<object>(args[1]);
+        array.Add(data);
+    }
+
     private void ExecuteWrite(object[] args)
     {
-        throw new NotImplementedException();
+        object collection = GetArgValue(args[0]);
+        object lookupKey = GetArgValue(args[1]);
+        object value = GetArgValue(args[2]);
+        if (collection is IList list && lookupKey is int index)
+        {
+            list[index] = value;
+        }
+        if (collection is IDictionary dict)
+        {
+            dict[lookupKey] = value;
+        }
     }
 
     private void ExecuteLen(object[] args)
@@ -250,16 +290,42 @@ public partial class BytecodeInterpreter
         stack.Push(l.Count);
     }
 
+    private void ExecuteNewArr(object[] args)
+    {
+        stack.Push(new List<object>());
+    }
+
+    private void ExecuteNewDict(object[] args)
+    {
+        stack.Push(new Dictionary<object, object>());
+    }
+
     private void ExecuteSysc(object[] args)
     {
         string methodName = args[0].ToString();
 
+        if (methodName.Equals("write_stdout"))
+        {
+            GD.Print(GetArgValue(args[1]));
+        }
         if (methodName.Equals("set_pixel"))
         {
             int x = GetArgValue<int>(args[1]);
             int y = GetArgValue<int>(args[2]);
             int brightness = GetArgValue<int>(args[3]);
             computer.SetPixel(x, y, brightness);
+        }
+        if (methodName.Equals("open_file"))
+        {
+            string path = GetArgValue<string>(args[1]);
+            FileNode fileNode = computer.GetFileNode(path);
+            stack.Push(new FileReader((File)fileNode));
+        }
+        if (methodName.Equals("read_file"))
+        {
+            FileReader reader = GetArgValue<FileReader>(args[1]);
+            List<byte> contents = reader.Read();
+            stack.Push(contents);
         }
     }
 
@@ -270,8 +336,8 @@ public partial class BytecodeInterpreter
 
     private (T, T) StackPopTwo<T>()
     {
-        T a = (T)stack.Pop();
-        T b = (T)stack.Pop();
+        T a = (T)CastVariable<T>(stack.Pop());
+        T b = (T)CastVariable<T>(stack.Pop());
         return (b, a);
     }
 
@@ -281,6 +347,10 @@ public partial class BytecodeInterpreter
         switch (arg.ValType)
         {
             case Argument.Type.Literal:
+                if (arg.Data is ICloneable cloneable)
+                {
+                    return cloneable.Clone();
+                }
                 return arg.Data;
             case Argument.Type.Variable:
                 string key = arg.Data.ToString();
@@ -297,7 +367,19 @@ public partial class BytecodeInterpreter
 
     private T GetArgValue<T>(object arg)
     {
-        return (T)GetArgValue(arg);
+        return (T)CastVariable<T>(GetArgValue(arg));
+    }
+
+    private T CastVariable<T>(object value)
+    {
+        if (value is IConvertible)
+        {
+            return (T)Convert.ChangeType(value, typeof(T));
+        }
+        else
+        {
+            return (T)value;
+        }
     }
 
 }
