@@ -166,7 +166,7 @@ public partial class Computer
         Color black = Color.Color8(0, 0, 0);
 
         Image fontImage = new();
-        fontImage.Load("computer/font.png");
+        fontImage.Load("game/computer/font.png");
 
         int asciiAIndex = 65;
         int charWidth = 6;

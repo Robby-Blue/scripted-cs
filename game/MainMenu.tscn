@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://ed3p27frm6we"]
 
-[ext_resource type="Script" uid="uid://dnofgmrd1wdb1" path="res://MainMenu.cs" id="1_eiy7p"]
-[ext_resource type="PackedScene" uid="uid://cv1bkpo0028jo" path="res://screen/ComputerScreen.tscn" id="2_h7a2f"]
+[ext_resource type="Script" uid="uid://dnofgmrd1wdb1" path="res://game/MainMenu.cs" id="1_eiy7p"]
+[ext_resource type="PackedScene" uid="uid://cv1bkpo0028jo" path="res://game/screen/ComputerScreen.tscn" id="2_h7a2f"]
 
 [node name="MainMenu" type="Control"]
 layout_mode = 3
