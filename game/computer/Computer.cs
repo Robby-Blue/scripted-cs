@@ -10,6 +10,15 @@ public partial class Computer
 
     public Computer(ComputerScreen screen)
     {
+        // Instruction[] bytecode = [
+        //     new Instruction(Opcode.LABEL, "start"),
+        //     new Instruction(Opcode.SYSC, "set_pixel",
+        //         new Argument(Argument.Type.Literal, 10),
+        //         new Argument(Argument.Type.Literal, 10),
+        //         new Argument(Argument.Type.Literal, 255)),
+        //     new Instruction(Opcode.HALT)
+        // ];
+
         Instruction[] bytecode = [
             new Instruction(Opcode.DEF_FUNC, "read_font"),
             new Instruction(Opcode.SYSC, "open_file", new Argument(Argument.Type.Literal, "/font.sfb")),
@@ -75,6 +84,9 @@ public partial class Computer
 
             new Instruction(Opcode.JMP, "loop_read_coord"),
             new Instruction(Opcode.LABEL, "done"),
+            new Instruction(Opcode.PUSH, new Argument(Argument.Type.Variable, "char_idx")),
+            new Instruction(Opcode.CAST, typeof(char)),
+            new Instruction(Opcode.WRITE, new Argument(Argument.Type.Variable, "chars"), new Argument(Argument.Type.Stack), new Argument(Argument.Type.Variable, "coords")),
             new Instruction(Opcode.RET, new Argument(Argument.Type.Variable, "chars")),
 
             new Instruction(Opcode.DEF_FUNC, "draw_char", "char"),
@@ -118,14 +130,29 @@ public partial class Computer
             new Instruction(Opcode.RET),
 
             new Instruction(Opcode.LABEL, "start"),
+            new Instruction(Opcode.SET, "alphabet", new Argument(Argument.Type.Literal, "ABCDEFGHIJKLMNOPQRSTUVWXYZ")),
             new Instruction(Opcode.CALL, "read_font"),
             new Instruction(Opcode.SET, "chars", new Argument(Argument.Type.Stack)),
 
+            new Instruction(Opcode.SET, "i", new Argument(Argument.Type.Literal, 0)),
             new Instruction(Opcode.SET, "x_offset", new Argument(Argument.Type.Literal, 1)),
             new Instruction(Opcode.SET, "y_offset", new Argument(Argument.Type.Literal, 1)),
 
             new Instruction(Opcode.LABEL, "loop2"),
-            new Instruction(Opcode.CALL, "draw_char", new Argument(Argument.Type.Literal, 'B')),
+            new Instruction(Opcode.PUSH, new Argument(Argument.Type.Variable, "i")),
+            new Instruction(Opcode.PUSH, new Argument(Argument.Type.Variable, "alphabet")),
+            new Instruction(Opcode.LEN),
+            new Instruction(Opcode.CMP_GTEQ),
+            new Instruction(Opcode.JMP_IF, "end"),
+            new Instruction(Opcode.PUSH, new Argument(Argument.Type.Variable, "alphabet")),
+            new Instruction(Opcode.LOOKUP, new Argument(Argument.Type.Variable, "i")),
+            new Instruction(Opcode.CALL, "draw_char", new Argument(Argument.Type.Stack)),
+
+            new Instruction(Opcode.PUSH, new Argument(Argument.Type.Variable, "i")),
+            new Instruction(Opcode.PUSH, new Argument(Argument.Type.Literal, 1)),
+            new Instruction(Opcode.ADD),
+            new Instruction(Opcode.SET, "i", new Argument(Argument.Type.Stack)),
+
             new Instruction(Opcode.PUSH, new Argument(Argument.Type.Variable, "x_offset")),
             new Instruction(Opcode.PUSH, new Argument(Argument.Type.Literal, 6)),
             new Instruction(Opcode.ADD),
@@ -152,10 +179,15 @@ public partial class Computer
             new Instruction(Opcode.LABEL, "endif2"),
 
             new Instruction(Opcode.JMP, "loop2"),
+            new Instruction(Opcode.LABEL, "end"),
             new Instruction(Opcode.HALT)
         ];
 
-        interpeter = new BytecodeInterpreter(this, bytecode);
+        List<byte> bytes = BytecodeWriter.Write(bytecode);
+        rootFolder.AddNode(new File(new Path("startup.csc"), bytes));
+
+        interpeter = new BytecodeInterpreter(this);
+        interpeter.LoadProgram(new Path("startup.csc"));
         this.screen = screen;
 
         rootFolder.AddNode(new File(new Path("font.sfb"), ReadFont()));
@@ -210,6 +242,11 @@ public partial class Computer
     public FileNode GetFileNode(string pathString)
     {
         Path path = new(pathString);
+        return GetFileNode(path);
+    }
+
+    public FileNode GetFileNode(Path path)
+    {
         return rootFolder.GetFileNode(path);
     }
 

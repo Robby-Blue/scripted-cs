@@ -21,7 +21,21 @@ public partial class BytecodeInterpreter
 
     private Dictionary<Opcode, Action<object[]>> bytecode_funcs;
 
-    public BytecodeInterpreter(Computer computer, Instruction[] instructions)
+    public BytecodeInterpreter(Computer computer)
+    {
+        this.computer = computer;
+    }
+
+    public void LoadProgram(Path path)
+    {
+        File file = (File)computer.GetFileNode(path);
+        List<byte> bytes = file.Read();
+        instructions = BytecodeReader.Read(bytes);
+
+        PrepareProgram();
+    }
+
+    private void PrepareProgram()
     {
         bytecode_funcs = new()
         {
@@ -56,9 +70,6 @@ public partial class BytecodeInterpreter
             [Opcode.SYSC] = ExecuteSysc,
             [Opcode.HALT] = ExecuteHalt
         };
-
-        this.computer = computer;
-        this.instructions = instructions;
 
         int i = 0;
         foreach (Instruction instruction in instructions)
@@ -259,6 +270,11 @@ public partial class BytecodeInterpreter
             object value = dict[lookupKey];
             stack.Push(value);
         }
+        if (collection is string str && lookupKey is int strIndex)
+        {
+            object value = str[strIndex];
+            stack.Push(value);
+        }
     }
 
     private void ExecuteArrAppend(object[] args)
@@ -285,9 +301,15 @@ public partial class BytecodeInterpreter
 
     private void ExecuteLen(object[] args)
     {
-        object v = stack.Pop();
-        IList l = (IList)v;
-        stack.Push(l.Count);
+        object obj = stack.Pop();
+        if (obj is IList list)
+        {
+            stack.Push(list.Count);
+        }
+        if (obj is string str)
+        {
+            stack.Push(str.Length);
+        }
     }
 
     private void ExecuteNewArr(object[] args)
